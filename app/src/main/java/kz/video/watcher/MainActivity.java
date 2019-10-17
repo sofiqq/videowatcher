@@ -8,10 +8,16 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
+import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.MediaController;
 import android.widget.Toast;
 import android.widget.VideoView;
 
@@ -19,6 +25,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     Button buttonPermissions;
     Button buttonVideo;
+    LinearLayout llPermissions;
+    LinearLayout llVideo;
+    StateBroadcastingVideoView videoView;
+    boolean permissionsActivated = false;
+    SharedPreferences sPref;
+    final String PERMISSIONS = "LOCK_PERMISSIONS";
+    String path = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
+    MediaController ctlr;
 
     public static final int RESULT_ENABLE = 11;
     private DevicePolicyManager devicePolicyManager;
@@ -30,14 +44,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         initUI();
 
-        IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_ON);
+        sPref = getPreferences(MODE_PRIVATE);
+        permissionsActivated = sPref.getBoolean(PERMISSIONS, false);
+        if (permissionsActivated) {
+            Log.e("ASD", "permission granet, load video");
+            buttonPermissions.setVisibility(View.INVISIBLE);
+            buttonVideo.setVisibility(View.VISIBLE);
+//            Intent i = new Intent(MainActivity.this, VideoActivity.class);
+//            startActivity(i);
+            showVideo();
+        }
 
+        IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_ON);
         filter.addAction(Intent.ACTION_SCREEN_OFF);
         filter.addAction(Intent.ACTION_USER_PRESENT);
-
-// Customized BroadcastReceiver class
-//Will be defined soon..
-
         mReceiver = new ScreenReceiver();
         registerReceiver(mReceiver, filter);
 
@@ -51,8 +71,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         buttonPermissions = findViewById(R.id.button_permissions);
         buttonVideo = findViewById(R.id.button_video);
+        llPermissions = findViewById(R.id.ll_permissions);
+        llVideo = findViewById(R.id.ll_video);
+        videoView = findViewById(R.id.video_view);
         buttonVideo.setOnClickListener(this);
         buttonPermissions.setOnClickListener(this);
+        setRequestedOrientation (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mediaPlayer) {
+                Toast.makeText(getApplicationContext(), "END API Post Request", Toast.LENGTH_SHORT).show();
+                showVideo();
+            }
+        });
+        videoView.setPlayPauseListener(new StateBroadcastingVideoView.PlayPauseListener() {
+            @Override
+            public void onPlay() {
+                Toast.makeText(getApplicationContext(), "PLAY API post request", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onPause() {
+                Toast.makeText(getApplicationContext(), "PAUSE API post request", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override
@@ -61,14 +103,32 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.button_permissions:
                 Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
                 intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, compName);
-                intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Additional text explaining why we need this permission");
+                intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Права для блокировки/разблокировки телефона");
                 startActivityForResult(intent, RESULT_ENABLE);
                 break;
             case R.id.button_video:
-                Intent i = new Intent(MainActivity.this, VideoActivity.class);
-                startActivity(i);
+//                Intent i = new Intent(MainActivity.this, VideoActivity.class);
+//                startActivity(i);
+                showVideo();
                 break;
         }
+    }
+
+    private void showVideo() {
+        llPermissions.setVisibility(View.GONE);
+        llVideo.setVisibility(View.VISIBLE);
+        videoView = findViewById(R.id.video_view);
+        Uri uri = Uri.parse(path);
+        videoView.setVideoURI(uri);
+        videoView.start();
+        ctlr = new MediaController(this);
+        ctlr.setMediaPlayer(videoView);
+        videoView.setMediaController(ctlr);
+        videoView.requestFocus();
+        videoView = findViewById(R.id.video_view);
+        videoView.setVideoPath(path);
+        videoView.start();
+        setRequestedOrientation (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
     }
 
     @Override
@@ -77,6 +137,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case RESULT_ENABLE :
                 if (resultCode == Activity.RESULT_OK) {
                     Toast.makeText(MainActivity.this, "Права уже активированы", Toast.LENGTH_SHORT).show();
+                    sPref = getPreferences(MODE_PRIVATE);
+                    SharedPreferences.Editor ed = sPref.edit();
+                    ed.putBoolean(PERMISSIONS, true);
+                    ed.commit();
+                    buttonPermissions.setVisibility(View.INVISIBLE);
 
                 } else {
                     Toast.makeText(MainActivity.this, "Ошибка активации прав", Toast.LENGTH_SHORT).show();
@@ -112,11 +177,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onRestoreInstanceState(Bundle inState)
     {
         Log.v("$````$", "In Method: onRestoreInstanceState()");
+        setRequestedOrientation (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         //if any saved state, restore from it…
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        Log.v("$$$$$$", "In Method: onResume()");
+        setRequestedOrientation (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
+        //showVideo();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.v("$$$$$$", "In Method: onPause()");
+        Toast.makeText(getApplicationContext(), "CLOSED API Post request", Toast.LENGTH_SHORT).show();
     }
 }
