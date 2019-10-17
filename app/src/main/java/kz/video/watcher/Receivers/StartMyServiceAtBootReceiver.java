@@ -1,8 +1,10 @@
-package kz.video.watcher;
+package kz.video.watcher.Receivers;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+
+import kz.video.watcher.Activities.MainActivity;
 
 public class StartMyServiceAtBootReceiver extends BroadcastReceiver {
 

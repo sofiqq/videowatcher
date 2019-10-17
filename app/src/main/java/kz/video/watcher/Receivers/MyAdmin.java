@@ -1,4 +1,4 @@
-package kz.video.watcher;
+package kz.video.watcher.Receivers;
 
 import android.app.admin.DeviceAdminReceiver;
 import android.content.Context;

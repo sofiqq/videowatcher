@@ -5,17 +5,18 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".VideoActivity"
+    tools:context=".Activities.VideoActivity"
     android:background="@color/black">
-    <LinearLayout
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:id="@+id/ll_pemissions">
-        <VideoView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
+        <com.warnyul.android.widget.FastVideoView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:rotation="90"
             android:id="@+id/video_view"/>
-    </LinearLayout>
+    </FrameLayout>
 
 </LinearLayout>

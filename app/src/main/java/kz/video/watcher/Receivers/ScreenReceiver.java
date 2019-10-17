@@ -1,25 +1,30 @@
-package kz.video.watcher;
+package kz.video.watcher.Receivers;
 
-import android.app.AlarmManager;
 import android.app.KeyguardManager;
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.media.AudioManager;
+import android.content.pm.ActivityInfo;
+import android.graphics.Color;
+import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.PowerManager;
 import android.util.Log;
-
-import java.io.IOException;
+import android.view.View;
+import android.view.WindowManager;
 
 import androidx.core.app.NotificationCompat;
+import kz.video.watcher.Activities.MainActivity;
+import kz.video.watcher.R;
+
+import static android.content.Context.WINDOW_SERVICE;
 
 public class ScreenReceiver extends BroadcastReceiver {
+
+    private static final boolean DISPLAY = false;
 
     @Override
     public void onReceive(Context context, Intent intent) {
