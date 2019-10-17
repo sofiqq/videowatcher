@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
+import android.widget.VideoView;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
@@ -49,6 +50,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void initUI() {
         setContentView(R.layout.activity_main);
         buttonPermissions = findViewById(R.id.button_permissions);
+        buttonVideo = findViewById(R.id.button_video);
+        buttonVideo.setOnClickListener(this);
         buttonPermissions.setOnClickListener(this);
     }
 
@@ -60,6 +63,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, compName);
                 intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Additional text explaining why we need this permission");
                 startActivityForResult(intent, RESULT_ENABLE);
+                break;
+            case R.id.button_video:
+                Intent i = new Intent(MainActivity.this, VideoActivity.class);
+                startActivity(i);
                 break;
         }
     }
@@ -94,8 +101,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     @Override
-    public void  onSaveInstanceState(Bundle outState)
-    {
+    public void  onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
         Log.v("$````$", "In Method: onSaveInstanceState()");
         //if necessary,set a flag to check whether we have to restore or not
         //handle necessary savings…
