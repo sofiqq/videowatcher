@@ -2,24 +2,33 @@ package kz.video.watcher;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.admin.DevicePolicyManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.MediaController;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
+
+import java.lang.reflect.Method;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
@@ -28,6 +37,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     LinearLayout llPermissions;
     LinearLayout llVideo;
     StateBroadcastingVideoView videoView;
+    TextView tvSdk;
+    TextView tvDevice;
+    TextView tvModel;
+    TextView tvProduct;
+    TextView tvSerial;
+    TextView tvImei;
+    TextView tvUnique;
+
     boolean permissionsActivated = false;
     SharedPreferences sPref;
     final String PERMISSIONS = "LOCK_PERMISSIONS";
@@ -74,6 +91,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         llPermissions = findViewById(R.id.ll_permissions);
         llVideo = findViewById(R.id.ll_video);
         videoView = findViewById(R.id.video_view);
+        tvSdk = findViewById(R.id.tv_sdk);
+        tvDevice = findViewById(R.id.tv_device);
+        tvImei = findViewById(R.id.tv_imei);
+        tvModel = findViewById(R.id.tv_model);
+        tvProduct = findViewById(R.id.tv_product);
+        tvSerial = findViewById(R.id.tv_serial);
+        tvUnique = findViewById(R.id.tv_unique);
+        tvSdk.setText("SDK = " + Build.VERSION.SDK);
+        tvDevice.setText("DEVICE = " + Build.DEVICE);
+        tvModel.setText("MODEL = " + Build.MODEL);
+        tvProduct.setText("PRODUCT = " + Build.PRODUCT);
+        tvSerial.setText("SERIAL = " + getSerialNumber());
+        tvImei.setText("IMEI = " + getIMEI(this));
+        tvUnique.setText("UNIQUE ID = " + getDeviceUniqueID(this));
         buttonVideo.setOnClickListener(this);
         buttonPermissions.setOnClickListener(this);
         setRequestedOrientation (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
@@ -87,7 +118,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         videoView.setPlayPauseListener(new StateBroadcastingVideoView.PlayPauseListener() {
             @Override
             public void onPlay() {
-                Toast.makeText(getApplicationContext(), "PLAY API post request", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(getApplicationContext(), "PLAY API post request", Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -115,6 +146,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void showVideo() {
+        Toast.makeText(getApplicationContext(), "PLAY API post request", Toast.LENGTH_SHORT).show();
         llPermissions.setVisibility(View.GONE);
         llVideo.setVisibility(View.VISIBLE);
         videoView = findViewById(R.id.video_view);
@@ -142,6 +174,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     ed.putBoolean(PERMISSIONS, true);
                     ed.commit();
                     buttonPermissions.setVisibility(View.INVISIBLE);
+                    buttonVideo.setVisibility(View.VISIBLE);
 
                 } else {
                     Toast.makeText(MainActivity.this, "Ошибка активации прав", Toast.LENGTH_SHORT).show();
@@ -196,4 +229,57 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Log.v("$$$$$$", "In Method: onPause()");
         Toast.makeText(getApplicationContext(), "CLOSED API Post request", Toast.LENGTH_SHORT).show();
     }
+
+    public static String getSerialNumber() {
+        String serialNumber;
+
+        try {
+            Class<?> c = Class.forName("android.os.SystemProperties");
+            Method get = c.getMethod("get", String.class);
+
+            serialNumber = (String) get.invoke(c, "gsm.sn1");
+            if (serialNumber.equals(""))
+                serialNumber = (String) get.invoke(c, "ril.serialnumber");
+            if (serialNumber.equals(""))
+                serialNumber = (String) get.invoke(c, "ro.serialno");
+            if (serialNumber.equals(""))
+                serialNumber = (String) get.invoke(c, "sys.serialnumber");
+            if (serialNumber.equals(""))
+                serialNumber = Build.SERIAL;
+
+            // If none of the methods above worked
+            if (serialNumber.equals(""))
+                serialNumber = null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            serialNumber = null;
+        }
+
+        return serialNumber;
+    }
+
+    public String getIMEI(Activity activity) {
+        TelephonyManager telephonyManager = (TelephonyManager) activity
+                .getSystemService(Context.TELEPHONY_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    Activity#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for Activity#requestPermissions for more details.
+                return null;
+            }
+        }
+        return telephonyManager.getDeviceId();
+    }
+
+    public String getDeviceUniqueID(Activity activity){
+        String device_unique_id = Settings.Secure.getString(activity.getContentResolver(),
+                Settings.Secure.ANDROID_ID);
+        return device_unique_id;
+    }
+
 }
