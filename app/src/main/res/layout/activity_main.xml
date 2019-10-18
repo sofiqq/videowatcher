@@ -13,6 +13,14 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:id="@+id/ll_permissions">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1) Дайте права приложению, нажав на кнопку Активировать права"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2) Отключите в настройках телефона любые блокировки экрана. При нажатии на кнопку включения телефон сразу должен открывать рабочий стол."/>
         <Button
             android:id="@+id/button_permissions"
             android:layout_width="wrap_content"

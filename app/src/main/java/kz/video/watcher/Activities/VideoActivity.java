@@ -38,7 +38,6 @@ import com.warnyul.android.widget.FastVideoView;
         Log.e("ASD", "onCreate VideoActivity");
         setContentView(R.layout.activity_video);
         initUI();
-        showVideo();
     }
 
 
@@ -87,4 +86,15 @@ import com.warnyul.android.widget.FastVideoView;
         videoView.start();
     }
 
+     @Override
+     protected void onPause() {
+         super.onPause();
+         videoView.stopPlayback();
+     }
+
+     @Override
+     protected void onResume() {
+         super.onResume();
+         showVideo();
+     }
  }
