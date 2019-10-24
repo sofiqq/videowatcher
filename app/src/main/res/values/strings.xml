@@ -2,4 +2,7 @@
     <string name="app_name">Video</string>
     <string name="activate_permissions">Активировать права</string>
     <string name="video_watch">Смотреть видео</string>
+    <string name="login">Логин</string>
+    <string name="password">Пароль</string>
+    <string name="log_in">Войти</string>
 </resources>

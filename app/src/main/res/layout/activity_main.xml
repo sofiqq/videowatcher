@@ -9,18 +9,44 @@
     tools:context=".Activities.MainActivity">
 
     <LinearLayout
+        android:id="@+id/ll_login"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+        <EditText
+            android:id="@+id/et_login"
+            android:layout_marginLeft="40dp"
+            android:layout_marginRight="40dp"
+            android:layout_marginTop="40dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:hint="@string/login"/>
+        <EditText
+            android:id="@+id/et_password"
+            android:inputType="text"
+            android:layout_marginLeft="40dp"
+            android:layout_marginRight="40dp"
+            android:layout_marginTop="10dp"
+            android:imeOptions="actionDone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/password"/>
+        <Button
+            android:id="@+id/button_login"
+            android:layout_marginTop="10dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/log_in"
+            android:layout_gravity="center"/>
+    </LinearLayout>
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
+        android:visibility="gone"
         android:id="@+id/ll_permissions">
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="1) Дайте права приложению, нажав на кнопку Активировать права"/>
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="2) Отключите в настройках телефона любые блокировки экрана. При нажатии на кнопку включения телефон сразу должен открывать рабочий стол."/>
         <Button
             android:id="@+id/button_permissions"
             android:layout_width="wrap_content"
@@ -77,18 +103,5 @@
             />
     </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:visibility="gone"
-        android:background="@color/black"
-        android:id="@+id/ll_video">
-        <kz.video.watcher.StateBroadcastingVideoView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:id="@+id/video_view"/>
-    </LinearLayout>
 
 </LinearLayout>
