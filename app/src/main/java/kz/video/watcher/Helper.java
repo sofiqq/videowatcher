@@ -14,4 +14,8 @@ public class Helper {
     public static String getVideoInfo() {
         return url + "rpc/get_device_video";
     }
+
+    public static String getActionUrl() {
+        return url + "rpc/add_action";
+    }
 }

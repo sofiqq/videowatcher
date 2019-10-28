@@ -1,5 +1,6 @@
 package kz.video.watcher.Activities;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import kz.video.watcher.Device;
@@ -40,6 +41,7 @@ import android.widget.MediaController;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -65,10 +67,9 @@ import javax.net.ssl.HttpsURLConnection;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    Button buttonPermissions;
+    Button buttonPermissions;  //Все вьюшки
     Button buttonVideo;
     LinearLayout llPermissions;
-    //StateBroadcastingVideoView videoView;
     TextView tvSdk;
     TextView tvDevice;
     TextView tvModel;
@@ -81,19 +82,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     EditText etPassword;
     Button buttonLogin;
 
-    boolean permissionsActivated = false;
-    SharedPreferences sPref;
-    final String PERMISSIONS = "LOCK_PERMISSIONS";
+    boolean permissionsActivated = false; //проверка прав на админа
+    SharedPreferences sPref; //для хранения данных в памяти телефона
+
+    final String PERMISSIONS = "LOCK_PERMISSIONS"; //ключи для сохранения переменных в памяти
     final String USER_ID = "USER_ID";
-    String path = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
-    MediaController ctlr;
+    final String DEVICE_ID = "DEVICE_ID";
 
     public static final int RESULT_ENABLE = 11;
     private DevicePolicyManager devicePolicyManager;
     private ComponentName compName;
     private BroadcastReceiver mReceiver;
-    Context context;
-    private int userId = -1;
+    private int userId = 0;
+    private int deviceId = 0;
     private String imei1 = "", imei2 = "";
 
     @Override
@@ -103,9 +104,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_PHONE_STATE}, 1);
         sPref = getPreferences(MODE_PRIVATE);
         permissionsActivated = sPref.getBoolean(PERMISSIONS, false);
-        getVideoInfo();
-        userId = sPref.getInt(USER_ID, -1);
-        if (userId != -1) {
+
+
+        userId = sPref.getInt(USER_ID, 0);
+        deviceId = sPref.getInt(DEVICE_ID, 0);
+        Log.e("ASD", "user id = " + userId + " device id = " + deviceId);
+        if (userId != 0) {
             llLogin.setVisibility(View.GONE);
             llPermissions.setVisibility(View.VISIBLE);
         }
@@ -113,8 +117,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Log.e("ASD", "permission granted, load video");
             buttonPermissions.setVisibility(View.INVISIBLE);
             buttonVideo.setVisibility(View.VISIBLE);
-//            Intent i = new Intent(MainActivity.this, VideoActivity.class);
-//            startActivity(i);
             showVideo();
         }
         IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_ON);
@@ -172,31 +174,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         tvDevice.setText("DEVICE = " + Build.MANUFACTURER);
         tvModel.setText("MODEL = " + Build.MODEL);
         tvProduct.setText("PRODUCT = " + Build.PRODUCT);
-        tvSerial.setText("SERIAL = " + Device.getSerialNumber());
-        tvImei.setText("IMEI = " + getDeviceId(this, 0));
+        tvSerial.setText("SERIAL = " + getSerialNumber());
+        tvImei.setText(" ");
         imei1 = getDeviceId(this, 0);
         imei2 = getDeviceId(this, 1);
         tvUnique.setText("UNIQUE ID = " + Device.getDeviceUniqueID(this));
         buttonVideo.setOnClickListener(this);
         buttonPermissions.setOnClickListener(this);
-//        videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-//            @Override
-//            public void onCompletion(MediaPlayer mediaPlayer) {
-//                Toast.makeText(getApplicationContext(), "END API Post Request", Toast.LENGTH_SHORT).show();
-//                showVideo();
-//            }
-//        });
-//        videoView.setPlayPauseListener(new StateBroadcastingVideoView.PlayPauseListener() {
-//            @Override
-//            public void onPlay() {
-//                //Toast.makeText(getApplicationContext(), "PLAY API post request", Toast.LENGTH_SHORT).show();
-//            }
-//
-//            @Override
-//            public void onPause() {
-//                Toast.makeText(getApplicationContext(), "PAUSE API post request", Toast.LENGTH_SHORT).show();
-//            }
-//        });
     }
 
     @Override
@@ -227,6 +211,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void showVideo() {
         Intent intent = new Intent(MainActivity.this, VideoActivity.class);
+        intent.putExtra("device", deviceId);
+        intent.putExtra("user", userId);
         startActivity(intent);
     }
 
@@ -325,7 +311,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     sendPhoneInfo();
                     Log.e("ASD", "userId = " + userId);
                 } catch (JSONException e) {
-                    Toast.makeText(context, "Что-то пошло не так, проверьте введенные данные или попробуйте позже", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Что-то пошло не так, проверьте введенные данные или попробуйте позже", Toast.LENGTH_SHORT).show();
+                    sendAction(2);
                     e.printStackTrace();
                 }
                 Log.e("ASD", "req mess = " + s);
@@ -335,20 +322,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
-    void sendPhoneInfo() {
+    void sendAction(final int id) {
         new AsyncTask<String, String, String>() {
 
             @Override
             protected String doInBackground(String... params) {
                 try {
-                    Log.e("ASD", Helper.getUrlDeviceId());
-                    DisplayMetrics displayMetrics = new DisplayMetrics();
-                    getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-                    int height = displayMetrics.heightPixels;
-                    int width = displayMetrics.widthPixels;
-                    String paramString = "{\"user_id\":" + userId + ",\"vendor_name\":\"" + Build.MANUFACTURER + "\",\"model_name\":\"" + Build.MODEL + "\",\"ss_width\":" + width + ",\"ss_height\":" + height + ",\"android_ver\": \"" + Build.VERSION.SDK + "\",\"serial_num\": \"" + Device.getSerialNumber() + "\",\"IMEI_1\": \"" + getDeviceId(getApplicationContext(), 0) + "\",\"IMEI_2\": \"" + getDeviceId(getApplicationContext(), 1) + "\"}";
-                    //String paramString2 = "{\"user_id\":5,\"vendor_name\":\"Xiaomi2\",\"model_name\":\"Redmi Note 5\",\"ss_width\": 540,\"ss_height\": 340,\"android_ver\": \"6.0\",\"serial_num\": \"asdasdasd\",\"IMEI_1\": \"12321312313\",\"IMEI_2\": \"12321312314\"}";
-                    String response = makePostRequest(Helper.getUrlDeviceId(), paramString
+                    Log.e("ASD", Helper.getActionUrl());
+                    String paramString = "{ \"user_id\":" + userId + ", \"device_id\":" + deviceId + ", \"action_id\":" + id + ", \"action_param\":\"подключение однако\" }";
+                    String response = makePostRequest(Helper.getActionUrl(), paramString
                             , getApplicationContext());
                     Log.e("ASD", paramString);
                     //Log.e("ASD", paramString2);
@@ -363,10 +345,97 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             protected void onPostExecute(String s) {
                 super.onPostExecute(s);
 
+                Log.e("ASD", "req mess sendAction" + 7 + " = " + s);
+
+            }
+        }.execute("");
+    }
+
+    void sendPhoneInfo() {
+        new AsyncTask<String, String, String>() {
+
+            @Override
+            protected String doInBackground(String... params) {
+                try {
+                    Log.e("ASD", Helper.getUrlDeviceId());
+                    DisplayMetrics displayMetrics = new DisplayMetrics();
+                    getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+                    int height = displayMetrics.heightPixels;
+                    int width = displayMetrics.widthPixels;
+                    String paramString = "{\"user_id\":" + userId + ",\"vendor_name\":\"" + Build.MANUFACTURER + "\",\"model_name\":\"" + Build.MODEL + "\",\"ss_width\":" + width + ",\"ss_height\":" + height + ",\"android_ver\": \"" + Build.VERSION.SDK + "\",\"serial_num\": \"" + getSerialNumber() + "\",\"IMEI_1\": \"" + getDeviceId(getApplicationContext(), 0) + "\",\"IMEI_2\": \"" + getDeviceId(getApplicationContext(), 1) + "\"}";
+                    Log.e("ASD", paramString);
+                    //String paramString2 = "{\"user_id\":5,\"vendor_name\":\"Xiaomi2\",\"model_name\":\"Redmi Note 5\",\"ss_width\": 540,\"ss_height\": 340,\"android_ver\": \"6.0\",\"serial_num\": \"asdasdasd\",\"IMEI_1\": \"12321312313\",\"IMEI_2\": \"12321312314\"}";
+                    String response = makePostRequest(Helper.getUrlDeviceId(), paramString
+                            , getApplicationContext());
+
+                    //Log.e("ASD", paramString2);
+                    return response;
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                    return "";
+                }
+            }
+
+            @Override
+            protected void onPostExecute(String s) {
+                super.onPostExecute(s);
+                try {
+                    JSONObject object = new JSONObject(s);
+                    deviceId = object.getInt("device_id");
+                    sPref = getPreferences(MODE_PRIVATE);
+                    SharedPreferences.Editor ed = sPref.edit();
+                    ed.putInt(DEVICE_ID, deviceId);
+                    ed.commit();
+                    Log.e("ASD", "device id = " + deviceId);
+                    sendAction(1);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
                 Log.e("ASD", "req mess = " + s);
 
             }
         }.execute("");
+    }
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        switch (requestCode) {
+            case 101:
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+                    return;
+                }
+                tvSerial.setText(Build.getSerial());
+            } else {
+                //not granted
+            }
+            break;
+            default:
+                super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
+    public String getSerialNumber() {
+        String serialNumber = "";
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    Activity#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for Activity#requestPermissions for more details.
+                return "";
+            }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            serialNumber = Build.getSerial();
+        }
+
+
+        return serialNumber;
     }
 
     void getVideoInfo() {
