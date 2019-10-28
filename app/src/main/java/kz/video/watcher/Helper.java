@@ -1,7 +1,7 @@
 package kz.video.watcher;
 
 public class Helper {
-    static String url = "http://95.56.236.114:53000/";
+    static String url = "http://95.56.236.114:53000/";  //Ссылка на апи
 
     public static String getUrlLogin() {
         return url + "rpc/check_login";

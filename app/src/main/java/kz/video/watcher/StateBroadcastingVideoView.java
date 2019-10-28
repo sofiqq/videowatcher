@@ -4,7 +4,7 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.widget.VideoView;
 
-public class StateBroadcastingVideoView extends VideoView{
+public class StateBroadcastingVideoView extends VideoView{ //VideoView, в котором есть возможность перевернуть его
     public interface PlayPauseListener {
         void onPlay();
         void onPause();

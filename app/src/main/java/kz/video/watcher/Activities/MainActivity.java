@@ -104,16 +104,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_PHONE_STATE}, 1);
         sPref = getPreferences(MODE_PRIVATE);
         permissionsActivated = sPref.getBoolean(PERMISSIONS, false);
-
-
-        userId = sPref.getInt(USER_ID, 0);
+        userId = sPref.getInt(USER_ID, 0); //Достает из памяти user_id и device_id
         deviceId = sPref.getInt(DEVICE_ID, 0);
         Log.e("ASD", "user id = " + userId + " device id = " + deviceId);
-        if (userId != 0) {
+        if (userId != 0) { //Если user_id имеется, пропускает страничку авторизации
             llLogin.setVisibility(View.GONE);
             llPermissions.setVisibility(View.VISIBLE);
         }
-        if (permissionsActivated) {
+        if (permissionsActivated) { //Если права выданы, то откроется страница видео
             Log.e("ASD", "permission granted, load video");
             buttonPermissions.setVisibility(View.INVISIBLE);
             buttonVideo.setVisibility(View.VISIBLE);
@@ -134,13 +132,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public String getDeviceId(Context context, int sim) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    Activity#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for Activity#requestPermissions for more details.
                 return null;
             }
         }
@@ -152,7 +143,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return imei;
     }
 
-    private void initUI() {
+    private void initUI() { //Объявление визуальных переменных
         setContentView(R.layout.activity_main);
         buttonPermissions = findViewById(R.id.button_permissions);
         buttonVideo = findViewById(R.id.button_video);
@@ -174,7 +165,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         tvDevice.setText("DEVICE = " + Build.MANUFACTURER);
         tvModel.setText("MODEL = " + Build.MODEL);
         tvProduct.setText("PRODUCT = " + Build.PRODUCT);
-        tvSerial.setText("SERIAL = " + getSerialNumber());
+        tvSerial.setText("SERIAL = " + Device.getSerialNumber());
         tvImei.setText(" ");
         imei1 = getDeviceId(this, 0);
         imei2 = getDeviceId(this, 1);
@@ -197,9 +188,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.button_login:
                 if (!etLogin.getText().equals("") && !etPassword.getText().equals("")) {
-                    HashMap<String, String> mapLogin = new HashMap<String, String>();
-                    mapLogin.put("username", etLogin.getText().toString());
-                    mapLogin.put("passwprd", etPassword.getText().toString());
                     appointment();
 
                 } else {
@@ -209,7 +197,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    private void showVideo() {
+    private void showVideo() { //Запускает VideoActivity где играет видео
         Intent intent = new Intent(MainActivity.this, VideoActivity.class);
         intent.putExtra("device", deviceId);
         intent.putExtra("user", userId);
@@ -279,7 +267,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Log.v("$$$$$$", "In Method: onPause()");
     }
 
-    public void appointment() {
+    public void appointment() { //Запрос на авторизацию
         new AsyncTask<String, String, String>() {
 
             @Override
@@ -322,7 +310,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
-    void sendAction(final int id) {
+    void sendAction(final int id) { //Запрос add_action. id - вид запроса:
+//         1	Авторизация
+//         2	Ошибка авторизации
+//         3	Проверка видео
+//         5	Окончание закачки видео
+//         7	Прерываение воспроизведения видео
+//         8	Окончание воспроизвдения видео
+//         4	Начало закачки видео
+//         6	Начало воспроизведения видео
         new AsyncTask<String, String, String>() {
 
             @Override
@@ -351,7 +347,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }.execute("");
     }
 
-    void sendPhoneInfo() {
+    void sendPhoneInfo() { //Запрос на получение device_id
         new AsyncTask<String, String, String>() {
 
             @Override
@@ -362,7 +358,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
                     int height = displayMetrics.heightPixels;
                     int width = displayMetrics.widthPixels;
-                    String paramString = "{\"user_id\":" + userId + ",\"vendor_name\":\"" + Build.MANUFACTURER + "\",\"model_name\":\"" + Build.MODEL + "\",\"ss_width\":" + width + ",\"ss_height\":" + height + ",\"android_ver\": \"" + Build.VERSION.SDK + "\",\"serial_num\": \"" + getSerialNumber() + "\",\"IMEI_1\": \"" + getDeviceId(getApplicationContext(), 0) + "\",\"IMEI_2\": \"" + getDeviceId(getApplicationContext(), 1) + "\"}";
+                    String paramString = "{\"user_id\":" + userId + ",\"vendor_name\":\"" + Build.MANUFACTURER + "\",\"model_name\":\"" + Build.MODEL + "\",\"ss_width\":" + width + ",\"ss_height\":" + height + ",\"android_ver\": \"" + Build.VERSION.SDK + "\",\"serial_num\": \"" + Device.getSerialNumber() + "\",\"IMEI_1\": \"" + getDeviceId(getApplicationContext(), 0) + "\",\"IMEI_2\": \"" + getDeviceId(getApplicationContext(), 1) + "\"}";
                     Log.e("ASD", paramString);
                     //String paramString2 = "{\"user_id\":5,\"vendor_name\":\"Xiaomi2\",\"model_name\":\"Redmi Note 5\",\"ss_width\": 540,\"ss_height\": 340,\"android_ver\": \"6.0\",\"serial_num\": \"asdasdasd\",\"IMEI_1\": \"12321312313\",\"IMEI_2\": \"12321312314\"}";
                     String response = makePostRequest(Helper.getUrlDeviceId(), paramString
@@ -413,59 +409,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             default:
                 super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
-    }
-
-    public String getSerialNumber() {
-        String serialNumber = "";
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    Activity#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for Activity#requestPermissions for more details.
-                return "";
-            }
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            serialNumber = Build.getSerial();
-        }
-
-
-        return serialNumber;
-    }
-
-    void getVideoInfo() {
-        new AsyncTask<String, String, String>() {
-
-            @Override
-            protected String doInBackground(String... params) {
-                try {
-                    Log.e("ASD", Helper.getVideoInfo());
-                    String paramString = "{\"user_id\":5, \"device_id\":8}";
-                    //String paramString2 = "{\"user_id\":5,\"vendor_name\":\"Xiaomi2\",\"model_name\":\"Redmi Note 5\",\"ss_width\": 540,\"ss_height\": 340,\"android_ver\": \"6.0\",\"serial_num\": \"asdasdasd\",\"IMEI_1\": \"12321312313\",\"IMEI_2\": \"12321312314\"}";
-                    String response = makePostRequest(Helper.getVideoInfo(), paramString
-                            , getApplicationContext());
-                    Log.e("ASD", paramString);
-                    //Log.e("ASD", paramString2);
-                    return response;
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                    return "";
-                }
-            }
-
-            @Override
-            protected void onPostExecute(String s) {
-                super.onPostExecute(s);
-
-                Log.e("ASD", "req mess VIDEO = " + s);
-
-            }
-        }.execute("");
     }
 
     public static String makePostRequest(String stringUrl, String payload,

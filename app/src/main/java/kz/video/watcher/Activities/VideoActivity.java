@@ -52,13 +52,10 @@ import java.util.logging.Logger;
 
  public class VideoActivity extends AppCompatActivity {
 
-    String path = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
     FastVideoView videoView;
     MediaController ctlr;
-    private static final boolean DISPLAY = false;
     private HttpProxyCacheServer proxy;
     private int stopPosition = 0;
-    private boolean isVideoDownloaded;
     private int userId = 0;
     private int deviceId = 0;
     String verticalUrl = "";
@@ -72,13 +69,15 @@ import java.util.logging.Logger;
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         sPref = getPreferences(MODE_PRIVATE);
-        Log.e("ASD", "onCreate VideoActivity");
         setContentView(R.layout.activity_video);
         initUI();
-        Intent intent = getIntent();
+
+
+        Intent intent = getIntent(); //Получение user_id и device_id из MainAcitivty
         userId = intent.getIntExtra("user", 0);
         deviceId = intent.getIntExtra("device", 0);
-        horizontalUrl = sPref.getString(HORIZONTAL_URL, "");
+
+        horizontalUrl = sPref.getString(HORIZONTAL_URL, ""); //Получение horizontal_url и vertical_url из памяти телефона
         verticalUrl = sPref.getString(VERTICAL_URL,"");
         proxy = getProxy(this);
         if (horizontalUrl.equals("")) {
@@ -100,7 +99,7 @@ import java.util.logging.Logger;
                  .build();
      }
 
-    private void initUI() {
+    private void initUI() { //Объявление визуальных переменных
         videoView = findViewById(R.id.video_view);
         ctlr = new MediaController(this);
         ctlr.setVisibility(View.GONE);
@@ -131,16 +130,6 @@ import java.util.logging.Logger;
             }
         });
 
-//        videoView.setPlayPauseListener(new StateBroadcastingVideoView.PlayPauseListener() {
-//            @Override
-//            public void onPlay() {
-//            }
-//
-//            @Override
-//            public void onPause() {
-//                Toast.makeText(getApplicationContext(), "PAUSE API post request", Toast.LENGTH_SHORT).show();
-//            }
-//        });
     }
 
      @Override
@@ -165,7 +154,7 @@ import java.util.logging.Logger;
          sendAction(8);
      }
 
-     private void showVideo() {
+     private void showVideo() { //Показывает видео. Если новая ссылка, то отображает и кэширует другое видео.
         sendAction(6);
         getVideoInfo();
         ctlr.setMediaPlayer(videoView);
@@ -177,7 +166,7 @@ import java.util.logging.Logger;
         videoView.start();
     }
 
-     void getVideoInfo() {
+     void getVideoInfo() { //Запрос на get_device_video. Если запускается не первый раз, то проверяет ссылку на обновление
          new AsyncTask<String, String, String>() {
 
              @Override
@@ -262,7 +251,15 @@ import java.util.logging.Logger;
          return jsonString.toString();
      }
 
-     void sendAction(final int id) {
+     void sendAction(final int id) { //Запрос add_action. id - вид запроса:
+//         1	Авторизация
+//         2	Ошибка авторизации
+//         3	Проверка видео
+//         5	Окончание закачки видео
+//         7	Прерываение воспроизведения видео
+//         8	Окончание воспроизвдения видео
+//         4	Начало закачки видео
+//         6	Начало воспроизведения видео
          new AsyncTask<String, String, String>() {
 
              @Override

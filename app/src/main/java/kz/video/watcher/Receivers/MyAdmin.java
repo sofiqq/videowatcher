@@ -6,7 +6,7 @@ import android.content.Intent;
 import android.widget.Toast;
 
 
-public class MyAdmin extends DeviceAdminReceiver {
+public class MyAdmin extends DeviceAdminReceiver { //AdminReceiver для получения прав на админку
 
     @Override
     public void onEnabled(Context context, Intent intent) {
