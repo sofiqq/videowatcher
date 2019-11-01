@@ -8,12 +8,6 @@ import kz.video.watcher.Helper;
 import kz.video.watcher.Receivers.MyAdmin;
 import kz.video.watcher.R;
 import kz.video.watcher.Receivers.ScreenReceiver;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 import android.Manifest;
 import android.app.Activity;
@@ -56,14 +50,6 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
-import java.net.URLEncoder;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
-
-import javax.net.ssl.HttpsURLConnection;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -81,6 +67,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     EditText etLogin;
     EditText etPassword;
     Button buttonLogin;
+    Button buttonLogout;
 
     boolean permissionsActivated = false; //проверка прав на админа
     SharedPreferences sPref; //для хранения данных в памяти телефона
@@ -111,9 +98,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             llLogin.setVisibility(View.GONE);
             llPermissions.setVisibility(View.VISIBLE);
         }
-        if (permissionsActivated) { //Если права выданы, то откроется страница видео
+        Intent i = getIntent();
+        int open = i.getIntExtra("open", 0);
+        if (permissionsActivated) {
+            buttonPermissions.setVisibility(View.GONE);
+            buttonVideo.setVisibility(View.VISIBLE);
+        }
+        if (permissionsActivated && open == 0) { //Если права выданы, то откроется страница видео
             Log.e("ASD", "permission granted, load video");
-            buttonPermissions.setVisibility(View.INVISIBLE);
+            buttonPermissions.setVisibility(View.GONE);
             buttonVideo.setVisibility(View.VISIBLE);
             showVideo();
         }
@@ -159,6 +152,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         etLogin = findViewById(R.id.et_login);
         etPassword = findViewById(R.id.et_password);
         buttonLogin = findViewById(R.id.button_login);
+        buttonLogout = findViewById(R.id.button_logout);
+        buttonLogout.setOnClickListener(this);
         buttonLogin.setOnClickListener(this);
         etLogin.setSingleLine();
         tvSdk.setText("SDK = " + Build.VERSION.SDK);
@@ -193,6 +188,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 } else {
                     Toast.makeText(this, "Заполните оба поля", Toast.LENGTH_SHORT).show();
                 }
+                break;
+            case R.id.button_logout:
+                userId = 0;
+                deviceId = 0;
+                sPref = getPreferences(MODE_PRIVATE);
+                SharedPreferences.Editor ed = sPref.edit();
+                ed.putInt(USER_ID, userId);
+                ed.putInt(DEVICE_ID, deviceId);
+                ed.putString(VideoActivity.HORIZONTAL_URL, "");
+                ed.putString(VideoActivity.VERTICAL_URL, "");
+                llPermissions.setVisibility(View.GONE);
+                llLogin.setVisibility(View.VISIBLE);
+                ed.commit();
                 break;
         }
     }
@@ -319,6 +327,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //         8	Окончание воспроизвдения видео
 //         4	Начало закачки видео
 //         6	Начало воспроизведения видео
+//         9    Телефон взят в руки
         new AsyncTask<String, String, String>() {
 
             @Override

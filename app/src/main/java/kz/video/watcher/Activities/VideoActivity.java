@@ -2,6 +2,7 @@
 
 import androidx.appcompat.app.AppCompatActivity;
 import kz.video.watcher.Helper;
+import kz.video.watcher.OnSwipeTouchListener;
 import kz.video.watcher.R;
 import kz.video.watcher.StateBroadcastingVideoView;
 
@@ -20,6 +21,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
+import android.view.OrientationEventListener;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
@@ -50,6 +52,8 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.logging.Logger;
 
+import static java.security.AccessController.getContext;
+
  public class VideoActivity extends AppCompatActivity {
 
     FastVideoView videoView;
@@ -60,9 +64,11 @@ import java.util.logging.Logger;
     private int deviceId = 0;
     String verticalUrl = "";
     String horizontalUrl = "";
-    final String HORIZONTAL_URL = "horizontal_url";
-    final String VERTICAL_URL = "vertical_url";
+    public static final String HORIZONTAL_URL = "horizontal_url";
+    public static final String VERTICAL_URL = "vertical_url";
      SharedPreferences sPref;
+     private int mOrientation=0;
+     private boolean isTouched = true;
 
 
     @Override
@@ -72,11 +78,10 @@ import java.util.logging.Logger;
         setContentView(R.layout.activity_video);
         initUI();
 
-
         Intent intent = getIntent(); //Получение user_id и device_id из MainAcitivty
         userId = intent.getIntExtra("user", 0);
         deviceId = intent.getIntExtra("device", 0);
-
+        startOrientationChangeListener();
         horizontalUrl = sPref.getString(HORIZONTAL_URL, ""); //Получение horizontal_url и vertical_url из памяти телефона
         verticalUrl = sPref.getString(VERTICAL_URL,"");
         proxy = getProxy(this);
@@ -97,6 +102,20 @@ import java.util.logging.Logger;
          return new HttpProxyCacheServer.Builder(this)
                  .maxCacheSize(1024 * 1024 * 1024)
                  .build();
+     }
+     private  void startOrientationChangeListener() {
+         OrientationEventListener mOrEventListener = new OrientationEventListener(getApplicationContext()) {
+             @Override
+             public void onOrientationChanged(int rotation) {
+                 Log.e("ASD", "rotation = " + rotation);
+                 if (!isTouched) {
+                     Log.e("ASD", "PHONE WAS TOUCHED");
+                     sendAction(9);
+                     isTouched = true;
+                 }
+             }
+         };
+         mOrEventListener.enable();
      }
 
     private void initUI() { //Объявление визуальных переменных
@@ -126,11 +145,37 @@ import java.util.logging.Logger;
             @Override
             public boolean onTouch(View view, MotionEvent motionEvent) {
                 moveTaskToBack(true);
+                Log.e("ASD", "touch");
                 return false;
+            }
+        });
+        videoView.setOnTouchListener(new OnSwipeTouchListener(VideoActivity.this) {
+            public void onSwipeTop() {
+            }
+            public void onSwipeRight() {
+            }
+            public void onSwipeLeft() {
+                Intent i = new Intent(VideoActivity.this, MainActivity.class);
+                i.putExtra("open", 1);
+                startActivity(i);
+                finish();
+            }
+            public void onSwipeBottom() {
+            }
+
+            @Override
+            public void onDoubleTapL() {
+                super.onDoubleTapL();
+                moveTaskToBack(true);
             }
         });
 
     }
+
+     @Override
+     public void onBackPressed() {
+         moveTaskToBack(true);
+     }
 
      @Override
      protected void onPause() {
@@ -155,6 +200,7 @@ import java.util.logging.Logger;
      }
 
      private void showVideo() { //Показывает видео. Если новая ссылка, то отображает и кэширует другое видео.
+        isTouched = false;
         sendAction(6);
         getVideoInfo();
         ctlr.setMediaPlayer(videoView);
@@ -260,6 +306,7 @@ import java.util.logging.Logger;
 //         8	Окончание воспроизвдения видео
 //         4	Начало закачки видео
 //         6	Начало воспроизведения видео
+//         9    Телефон взят в руки
          new AsyncTask<String, String, String>() {
 
              @Override

@@ -66,6 +66,15 @@
             android:textAllCaps="false"
             style="@style/Widget.AppCompat.Button.Colored"
             android:text="@string/video_watch"/>
+        <Button
+            android:id="@+id/button_logout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:layout_gravity="center"
+            android:textAllCaps="false"
+            style="@style/Widget.AppCompat.Button.Colored"
+            android:text="@string/log_out"/>
         <TextView
             android:id="@+id/tv_sdk"
             android:layout_width="wrap_content"
