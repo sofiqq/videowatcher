@@ -6,4 +6,6 @@
     <string name="password">Пароль</string>
     <string name="log_in">Войти</string>
     <string name="log_out">Выйти</string>
+    <string name="confirm">Принять</string>
+    <string name="default_url">http://95.56.236.114:53000/</string>
 </resources>

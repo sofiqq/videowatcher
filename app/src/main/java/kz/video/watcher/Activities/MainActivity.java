@@ -68,6 +68,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     EditText etPassword;
     Button buttonLogin;
     Button buttonLogout;
+    EditText etUrl;
+    Button buttonConfirmUrl;
 
     boolean permissionsActivated = false; //проверка прав на админа
     SharedPreferences sPref; //для хранения данных в памяти телефона
@@ -83,6 +85,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private int userId = 0;
     private int deviceId = 0;
     private String imei1 = "", imei2 = "";
+    private String url;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,6 +96,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         permissionsActivated = sPref.getBoolean(PERMISSIONS, false);
         userId = sPref.getInt(USER_ID, 0); //Достает из памяти user_id и device_id
         deviceId = sPref.getInt(DEVICE_ID, 0);
+        url = sPref.getString("url", getString(R.string.default_url));
+        Log.e("ASD", "url = " + url + " default url = " + getString(R.string.default_url));
+        Helper.setUrl(url);
+        etUrl.setHint(url);
+
         Log.e("ASD", "user id = " + userId + " device id = " + deviceId);
         if (userId != 0) { //Если user_id имеется, пропускает страничку авторизации
             llLogin.setVisibility(View.GONE);
@@ -101,12 +109,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Intent i = getIntent();
         int open = i.getIntExtra("open", 0);
         if (permissionsActivated) {
-            buttonPermissions.setVisibility(View.GONE);
+            //buttonPermissions.setVisibility(View.GONE);
             buttonVideo.setVisibility(View.VISIBLE);
         }
-        if (permissionsActivated && open == 0) { //Если права выданы, то откроется страница видео
+        if (permissionsActivated && open == 0 && userId != 0 && deviceId != 0) { //Если права выданы, то откроется страница видео
             Log.e("ASD", "permission granted, load video");
-            buttonPermissions.setVisibility(View.GONE);
+            //buttonPermissions.setVisibility(View.GONE);
             buttonVideo.setVisibility(View.VISIBLE);
             showVideo();
         }
@@ -153,8 +161,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         etPassword = findViewById(R.id.et_password);
         buttonLogin = findViewById(R.id.button_login);
         buttonLogout = findViewById(R.id.button_logout);
+        etUrl = findViewById(R.id.et_url);
+        buttonConfirmUrl = findViewById(R.id.button_confirm_url);
         buttonLogout.setOnClickListener(this);
         buttonLogin.setOnClickListener(this);
+        buttonConfirmUrl.setOnClickListener(this);
         etLogin.setSingleLine();
         tvSdk.setText("SDK = " + Build.VERSION.SDK);
         tvDevice.setText("DEVICE = " + Build.MANUFACTURER);
@@ -201,6 +212,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 llPermissions.setVisibility(View.GONE);
                 llLogin.setVisibility(View.VISIBLE);
                 ed.commit();
+                break;
+            case R.id.button_confirm_url:
+                if (!etUrl.getText().toString().equals("")) {
+                    sPref = getPreferences(MODE_PRIVATE);
+                    SharedPreferences.Editor edd = sPref.edit();
+                    String ss = etUrl.getText().toString();
+                    if (ss.charAt(ss.length() - 1) != '/')
+                        ss += '/';
+                    if (!ss.substring(0,4).equals("http"))
+                        ss = "http://" + ss;
+                    edd.putString("url", ss);
+                    edd.commit();
+                    Helper.setUrl(ss);
+                    etUrl.setHint(ss);
+                    etUrl.setText("");
+                }
                 break;
         }
     }
@@ -281,9 +308,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             protected String doInBackground(String... params) {
                 try {
+                    Log.e("ASD", Helper.getUrlLogin());
+                    Log.e("ASD", "{\"username\":\"" + etLogin.getText().toString() + "\",\"password\":\"" + etPassword.getText().toString() + "\"}");
                     String response = makePostRequest(Helper.getUrlLogin(),
                             "{\"username\":\"" + etLogin.getText().toString() + "\",\"password\":\"" + etPassword.getText().toString() + "\"}", getApplicationContext());
-                    Log.e("ASD", "{\"username\":\"" + etLogin.getText().toString() + "\",\"password\":\"" + etPassword.getText().toString() + "\"}");
                     return response;
                 } catch (IOException ex) {
                     ex.printStackTrace();

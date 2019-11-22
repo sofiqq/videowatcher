@@ -17,6 +17,7 @@ import android.graphics.PixelFormat;
 import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
@@ -50,6 +51,8 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.logging.Logger;
 
 import static java.security.AccessController.getContext;
@@ -70,6 +73,8 @@ import static java.security.AccessController.getContext;
      private int mOrientation=0;
      private boolean isTouched = true;
 
+     Handler handler = new Handler();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,8 +91,12 @@ import static java.security.AccessController.getContext;
         verticalUrl = sPref.getString(VERTICAL_URL,"");
         proxy = getProxy(this);
         if (horizontalUrl.equals("")) {
+            // zdes' doljno biy' tol'ko getVideoInfo();
+//            isTouched = false;
+//            showVideo();
             getVideoInfo();
         } else {
+            isTouched = false;
             showVideo();
         }
         Log.e("ASD", "videoActivity user = " + userId + " device = " + deviceId);
@@ -110,9 +119,18 @@ import static java.security.AccessController.getContext;
                  Log.e("ASD", "rotation = " + rotation);
                  if (!isTouched) {
                      Log.e("ASD", "PHONE WAS TOUCHED");
+                     Toast.makeText(getApplicationContext(), "PHONE IS TOUCHED, SEND ACTION 9", Toast.LENGTH_SHORT).show();
                      sendAction(9);
                      isTouched = true;
                  }
+                 int seconds = 5;
+                 handler.removeCallbacksAndMessages(null);
+                 handler.postDelayed(new Runnable() {
+                     @Override
+                     public void run() {
+                         isTouched = false;
+                     }
+                 }, seconds * 1000);
              }
          };
          mOrEventListener.enable();
@@ -200,7 +218,6 @@ import static java.security.AccessController.getContext;
      }
 
      private void showVideo() { //Показывает видео. Если новая ссылка, то отображает и кэширует другое видео.
-        isTouched = false;
         sendAction(6);
         getVideoInfo();
         ctlr.setMediaPlayer(videoView);

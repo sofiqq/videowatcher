@@ -18,4 +18,8 @@ public class Helper {
     public static String getActionUrl() {
         return url + "rpc/add_action";
     }
+
+    public static void setUrl(String s) {
+        url = s;
+    }
 }
