@@ -1,6 +1,7 @@
 package kz.video.watcher;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -23,6 +24,14 @@ public class OnSwipeTouchListener implements View.OnTouchListener {
 
     }
 
+    public void onTap() {
+
+    }
+
+    public void onSingle(){
+
+    }
+
 
     public boolean onTouch(View v, MotionEvent event) {
         return gestureDetector.onTouchEvent(event);
@@ -35,11 +44,20 @@ public class OnSwipeTouchListener implements View.OnTouchListener {
 
         @Override
         public boolean onDown(MotionEvent e) {
+            Log.e("ASDd", "onDown");
+            return true;
+        }
+
+        @Override
+        public boolean onSingleTapConfirmed(MotionEvent e) {
+            Log.e("ASDd", "onSingleTapConfirmed");
+            onSingle();
             return true;
         }
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            Log.e("ASDd", "onFling");
             float distanceX = e2.getX() - e1.getX();
             float distanceY = e2.getY() - e1.getY();
             if (Math.abs(distanceX) > Math.abs(distanceY) && Math.abs(distanceX) > SWIPE_DISTANCE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
@@ -57,5 +75,6 @@ public class OnSwipeTouchListener implements View.OnTouchListener {
             onDoubleTapL();
             return super.onDoubleTap(e);
         }
+
     }
 }

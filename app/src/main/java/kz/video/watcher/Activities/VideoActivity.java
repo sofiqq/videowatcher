@@ -1,6 +1,7 @@
  package kz.video.watcher.Activities;
 
 import androidx.appcompat.app.AppCompatActivity;
+import kz.video.watcher.ActivityTask;
 import kz.video.watcher.Helper;
 import kz.video.watcher.OnSwipeTouchListener;
 import kz.video.watcher.R;
@@ -60,6 +61,8 @@ import static java.security.AccessController.getContext;
  public class VideoActivity extends AppCompatActivity {
 
     FastVideoView videoView;
+    LinearLayout llPhone;
+
     MediaController ctlr;
     private HttpProxyCacheServer proxy;
     private int stopPosition = 0;
@@ -72,20 +75,47 @@ import static java.security.AccessController.getContext;
      SharedPreferences sPref;
      private int mOrientation=0;
      private boolean isTouched = true;
+     int activity;
+     OrientationEventListener mOrEventListener;
+     private int playVideo;
+     private int playIntro;
 
-     Handler handler = new Handler();
+     private final Handler handler = new Handler();
+     private Runnable runnable;
 
+     private void setDefaults() {
+         mOrientation = 0;
+         deviceId = 0;
+         userId = 0;
+         verticalUrl = "";
+         horizontalUrl = "";
+         runnable = new Runnable() {
+             @Override
+             public void run() {
+                 isTouched = false;
+                 handler.removeCallbacks(this);
+                 sendAction(10);
+             }
+         };
+     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         sPref = getPreferences(MODE_PRIVATE);
         setContentView(R.layout.activity_video);
+        setDefaults();
         initUI();
-
+        activity = ActivityTask.getActivityId();
+        activity++;
+        ActivityTask.setActivity(activity);
+        handler.removeCallbacks(runnable);
+        handler.removeCallbacksAndMessages(null);
         Intent intent = getIntent(); //Получение user_id и device_id из MainAcitivty
         userId = intent.getIntExtra("user", 0);
         deviceId = intent.getIntExtra("device", 0);
+        playIntro = intent.getIntExtra("play_intro", -1);
+        playVideo = intent.getIntExtra("play_video", -1);
         startOrientationChangeListener();
         horizontalUrl = sPref.getString(HORIZONTAL_URL, ""); //Получение horizontal_url и vertical_url из памяти телефона
         verticalUrl = sPref.getString(VERTICAL_URL,"");
@@ -113,24 +143,18 @@ import static java.security.AccessController.getContext;
                  .build();
      }
      private  void startOrientationChangeListener() {
-         OrientationEventListener mOrEventListener = new OrientationEventListener(getApplicationContext()) {
+         mOrEventListener = new OrientationEventListener(getApplicationContext()) {
              @Override
              public void onOrientationChanged(int rotation) {
                  Log.e("ASD", "rotation = " + rotation);
                  if (!isTouched) {
                      Log.e("ASD", "PHONE WAS TOUCHED");
-                     Toast.makeText(getApplicationContext(), "PHONE IS TOUCHED, SEND ACTION 9", Toast.LENGTH_SHORT).show();
-                     sendAction(9);
+                     //Toast.makeText(getApplicationContext(), "PHONE IS TOUCHED, SEND ACTION 9", Toast.LENGTH_SHORT).show();
                      isTouched = true;
+                     sendAction(9);
                  }
-                 int seconds = 5;
-                 handler.removeCallbacksAndMessages(null);
-                 handler.postDelayed(new Runnable() {
-                     @Override
-                     public void run() {
-                         isTouched = false;
-                     }
-                 }, seconds * 1000);
+                 restart(5);
+                 llPhone.animate().translationY(1000);
              }
          };
          mOrEventListener.enable();
@@ -140,6 +164,7 @@ import static java.security.AccessController.getContext;
         videoView = findViewById(R.id.video_view);
         ctlr = new MediaController(this);
         ctlr.setVisibility(View.GONE);
+        llPhone = findViewById(R.id.ll_phone);
         videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
@@ -159,14 +184,20 @@ import static java.security.AccessController.getContext;
         videoView.setY(y);
         videoView.setX(x);
         Log.e("ASD", "" + x + " " + y);
-        videoView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                moveTaskToBack(true);
-                Log.e("ASD", "touch");
-                return false;
-            }
-        });
+//        videoView.setOnTouchListener(new View.OnTouchListener() {
+//            @Override
+//            public boolean onTouch(View view, MotionEvent motionEvent) {
+//                moveTaskToBack(true);
+//                Log.e("ASD", "touch");
+//                return false;
+//            }
+//        });
+//        videoView.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                moveTaskToBack(true);
+//            }
+//        });
         videoView.setOnTouchListener(new OnSwipeTouchListener(VideoActivity.this) {
             public void onSwipeTop() {
             }
@@ -174,9 +205,13 @@ import static java.security.AccessController.getContext;
             }
             public void onSwipeLeft() {
                 Intent i = new Intent(VideoActivity.this, MainActivity.class);
+                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 i.putExtra("open", 1);
                 startActivity(i);
+                handler.removeCallbacks(runnable);
+                handler.removeCallbacksAndMessages(null);
                 finish();
+                return;
             }
             public void onSwipeBottom() {
             }
@@ -186,7 +221,14 @@ import static java.security.AccessController.getContext;
                 super.onDoubleTapL();
                 moveTaskToBack(true);
             }
+
+            @Override
+            public void onSingle() {
+                super.onSingle();
+                moveTaskToBack(true);
+            }
         });
+
 
     }
 
@@ -215,6 +257,11 @@ import static java.security.AccessController.getContext;
      protected void onDestroy() {
          super.onDestroy();
          sendAction(8);
+         Log.e("ASDD", "stop handler");
+         handler.removeCallbacks(runnable);
+         handler.removeCallbacksAndMessages(null);
+         mOrEventListener.disable();
+         stop();
      }
 
      private void showVideo() { //Показывает видео. Если новая ссылка, то отображает и кэширует другое видео.
@@ -334,6 +381,8 @@ import static java.security.AccessController.getContext;
                      String response = makePostRequest(Helper.getActionUrl(), paramString
                              , getApplicationContext());
                      Log.e("ASD", paramString);
+                     if (id == 9 || id == 10)
+                         Log.e("ASDD", "id = " + activity + " " + paramString);
                      //Log.e("ASD", paramString2);
                      return response;
                  } catch (IOException ex) {
@@ -350,6 +399,23 @@ import static java.security.AccessController.getContext;
 
              }
          }.execute("");
+     }
+
+     public void start(int secs) {
+         handler.postDelayed(runnable, secs * 1000);
+     }
+
+     // to stop the handler
+     public void stop() {
+         handler.removeCallbacks(runnable);
+         handler.removeCallbacksAndMessages(null);
+     }
+
+     // to reset the handler
+     public void restart(int secs) {
+         handler.removeCallbacks(runnable);
+         handler.removeCallbacksAndMessages(null);
+         handler.postDelayed(runnable, secs * 1000);
      }
 
  }

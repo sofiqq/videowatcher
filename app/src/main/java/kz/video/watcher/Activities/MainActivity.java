@@ -77,6 +77,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     final String PERMISSIONS = "LOCK_PERMISSIONS"; //ключи для сохранения переменных в памяти
     final String USER_ID = "USER_ID";
     final String DEVICE_ID = "DEVICE_ID";
+    final String PLAYVIDEO = "PLAYVIDEO";
+    final String PLAYINTRO = "PLAYINTRO";
 
     public static final int RESULT_ENABLE = 11;
     private DevicePolicyManager devicePolicyManager;
@@ -84,6 +86,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private BroadcastReceiver mReceiver;
     private int userId = 0;
     private int deviceId = 0;
+    private int playVideo;
+    private int playIntro;
     private String imei1 = "", imei2 = "";
     private String url;
 
@@ -96,6 +100,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         permissionsActivated = sPref.getBoolean(PERMISSIONS, false);
         userId = sPref.getInt(USER_ID, 0); //Достает из памяти user_id и device_id
         deviceId = sPref.getInt(DEVICE_ID, 0);
+        playIntro = sPref.getInt(PLAYINTRO, -1);
+        playVideo = sPref.getInt(PLAYVIDEO, -1);
         url = sPref.getString("url", getString(R.string.default_url));
         Log.e("ASD", "url = " + url + " default url = " + getString(R.string.default_url));
         Helper.setUrl(url);
@@ -145,6 +151,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void initUI() { //Объявление визуальных переменных
+        Log.e("ASD", "QWE");
         setContentView(R.layout.activity_main);
         buttonPermissions = findViewById(R.id.button_permissions);
         buttonVideo = findViewById(R.id.button_video);
@@ -236,7 +243,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Intent intent = new Intent(MainActivity.this, VideoActivity.class);
         intent.putExtra("device", deviceId);
         intent.putExtra("user", userId);
+        intent.putExtra("play_video", playVideo);
+        intent.putExtra("play_intro", playIntro);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
+        finish();
     }
 
     @Override
@@ -413,11 +424,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             protected void onPostExecute(String s) {
                 super.onPostExecute(s);
                 try {
+                    Log.e("ASD", "QWE");
                     JSONObject object = new JSONObject(s);
                     deviceId = object.getInt("device_id");
+                    playIntro = object.getInt("play_intro");
+                    playVideo = object.getInt("play_video");
+                    Log.e("ASD", "play video = " + playVideo + ", " + "play intro = " + playIntro);
                     sPref = getPreferences(MODE_PRIVATE);
                     SharedPreferences.Editor ed = sPref.edit();
                     ed.putInt(DEVICE_ID, deviceId);
+                    ed.putInt(PLAYINTRO, playIntro);
+                    ed.putInt(PLAYVIDEO, playVideo);
                     ed.commit();
                     Log.e("ASD", "device id = " + deviceId);
                     sendAction(1);
@@ -474,7 +491,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             ex.printStackTrace();
         }
         uc.disconnect();
-        Log.e("ASD", "jsonToString = " + jsonString.toString());
         return jsonString.toString();
     }
 

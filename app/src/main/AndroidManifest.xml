@@ -13,7 +13,8 @@
         <activity android:name=".Activities.VideoActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar.FullScreen"
             android:launchMode="singleTask"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            android:noHistory="true">
         </activity>
         <activity android:name=".Activities.MainActivity"
             android:screenOrientation="portrait">
