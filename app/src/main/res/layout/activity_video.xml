@@ -29,11 +29,13 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="mobile"/>
+            android:textSize="20sp"
+            android:text="Название модели"/>
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="cost"/>
+            android:textSize="18sp"
+            android:text="Цена: 120 000 тг."/>
     </LinearLayout>
 
 </FrameLayout>

@@ -56,7 +56,6 @@
     <uses-permission android:name="android.app.action.DEVICE_ADMIN_ENABLED"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
-<!--    <uses-permission android:name="android.permission.BIND_DEVICE_ADMIN"/>-->
 
 
 

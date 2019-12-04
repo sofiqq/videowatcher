@@ -245,9 +245,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         intent.putExtra("user", userId);
         intent.putExtra("play_video", playVideo);
         intent.putExtra("play_intro", playIntro);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
-        finish();
     }
 
     @Override
@@ -274,7 +272,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.v("$$$$$$", "In Method: onDestroy()");
+        Log.e("ASD", "in method: destroy main");
 
         if (mReceiver != null) {
             unregisterReceiver(mReceiver);
@@ -427,7 +425,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     Log.e("ASD", "QWE");
                     JSONObject object = new JSONObject(s);
                     deviceId = object.getInt("device_id");
-                    playIntro = object.getInt("play_intro");
+                    playIntro = object.getInt("play_inter");
                     playVideo = object.getInt("play_video");
                     Log.e("ASD", "play video = " + playVideo + ", " + "play intro = " + playIntro);
                     sPref = getPreferences(MODE_PRIVATE);

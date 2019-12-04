@@ -16,6 +16,7 @@ import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -93,8 +94,9 @@ import static java.security.AccessController.getContext;
              @Override
              public void run() {
                  isTouched = false;
-                 handler.removeCallbacks(this);
+                 //handler.removeCallbacks(this);
                  sendAction(10);
+                 llPhone.animate().translationY(1300);
              }
          };
      }
@@ -109,8 +111,8 @@ import static java.security.AccessController.getContext;
         activity = ActivityTask.getActivityId();
         activity++;
         ActivityTask.setActivity(activity);
-        handler.removeCallbacks(runnable);
-        handler.removeCallbacksAndMessages(null);
+        //handler.removeCallbacks(runnable);
+        //handler.removeCallbacksAndMessages(null);
         Intent intent = getIntent(); //Получение user_id и device_id из MainAcitivty
         userId = intent.getIntExtra("user", 0);
         deviceId = intent.getIntExtra("device", 0);
@@ -130,7 +132,7 @@ import static java.security.AccessController.getContext;
             showVideo();
         }
         Log.e("ASD", "videoActivity user = " + userId + " device = " + deviceId);
-
+        llPhone.animate().translationY(1300);
     }
 
      public HttpProxyCacheServer getProxy(Context context) {
@@ -143,21 +145,24 @@ import static java.security.AccessController.getContext;
                  .build();
      }
      private  void startOrientationChangeListener() {
-         mOrEventListener = new OrientationEventListener(getApplicationContext()) {
-             @Override
-             public void onOrientationChanged(int rotation) {
-                 Log.e("ASD", "rotation = " + rotation);
-                 if (!isTouched) {
-                     Log.e("ASD", "PHONE WAS TOUCHED");
-                     //Toast.makeText(getApplicationContext(), "PHONE IS TOUCHED, SEND ACTION 9", Toast.LENGTH_SHORT).show();
-                     isTouched = true;
-                     sendAction(9);
+         if (activity == 1) {
+             mOrEventListener = new OrientationEventListener(getApplicationContext()) {
+                 @Override
+                 public void onOrientationChanged(int rotation) {
+                     Log.e("ASD", "rotation = " + rotation);
+                     if (!isTouched) {
+                         Log.e("ASD", "PHONE WAS TOUCHED");
+                         //Toast.makeText(getApplicationContext(), "PHONE IS TOUCHED, SEND ACTION 9", Toast.LENGTH_SHORT).show();
+                         isTouched = true;
+                         sendAction(9);
+                         llPhone.animate().translationY(0);
+                     }
+                     restart(5);
+
                  }
-                 restart(5);
-                 llPhone.animate().translationY(1000);
-             }
-         };
-         mOrEventListener.enable();
+             };
+             mOrEventListener.enable();
+         }
      }
 
     private void initUI() { //Объявление визуальных переменных
@@ -165,6 +170,7 @@ import static java.security.AccessController.getContext;
         ctlr = new MediaController(this);
         ctlr.setVisibility(View.GONE);
         llPhone = findViewById(R.id.ll_phone);
+        llPhone.setRotation(90.0f);
         videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
@@ -183,6 +189,7 @@ import static java.security.AccessController.getContext;
         float y = height / 2 - (width / 2);
         videoView.setY(y);
         videoView.setX(x);
+
         Log.e("ASD", "" + x + " " + y);
 //        videoView.setOnTouchListener(new View.OnTouchListener() {
 //            @Override
@@ -204,13 +211,14 @@ import static java.security.AccessController.getContext;
             public void onSwipeRight() {
             }
             public void onSwipeLeft() {
-                Intent i = new Intent(VideoActivity.this, MainActivity.class);
-                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                i.putExtra("open", 1);
-                startActivity(i);
-                handler.removeCallbacks(runnable);
-                handler.removeCallbacksAndMessages(null);
+//                Intent i = new Intent(VideoActivity.this, MainActivity.class);
+//                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+//                i.putExtra("open", 1);
+//                startActivity(i);
+                //handler.removeCallbacks(runnable);
+                //handler.removeCallbacksAndMessages(null);
                 finish();
+                moveTaskToBack(true);
                 return;
             }
             public void onSwipeBottom() {
@@ -258,10 +266,10 @@ import static java.security.AccessController.getContext;
          super.onDestroy();
          sendAction(8);
          Log.e("ASDD", "stop handler");
-         handler.removeCallbacks(runnable);
-         handler.removeCallbacksAndMessages(null);
-         mOrEventListener.disable();
-         stop();
+         //handler.removeCallbacks(runnable);
+         //handler.removeCallbacksAndMessages(null);
+         //mOrEventListener.disable();
+        // stop();
      }
 
      private void showVideo() { //Показывает видео. Если новая ссылка, то отображает и кэширует другое видео.
@@ -272,7 +280,7 @@ import static java.security.AccessController.getContext;
         videoView.requestFocus();
         Log.e("ASD", "horizontal url = " + horizontalUrl);
         String videoPath = proxy.getProxyUrl(horizontalUrl);
-        videoView.setVideoPath(videoPath);
+        videoView.setVideoURI(Uri.parse(videoPath));
         videoView.start();
     }
 
@@ -378,9 +386,9 @@ import static java.security.AccessController.getContext;
                  try {
                      Log.e("ASD", Helper.getActionUrl());
                      String paramString = "{ \"user_id\":" + userId +", \"device_id\":"+ deviceId + ", \"action_id\":" + id + ", \"action_param\":\"подключение однако\" }";
+                     Log.e("ASD", paramString);
                      String response = makePostRequest(Helper.getActionUrl(), paramString
                              , getApplicationContext());
-                     Log.e("ASD", paramString);
                      if (id == 9 || id == 10)
                          Log.e("ASDD", "id = " + activity + " " + paramString);
                      //Log.e("ASD", paramString2);
