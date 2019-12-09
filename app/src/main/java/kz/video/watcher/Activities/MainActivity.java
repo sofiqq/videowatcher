@@ -3,6 +3,7 @@ package kz.video.watcher.Activities;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import kz.video.MobileInfo;
 import kz.video.watcher.Device;
 import kz.video.watcher.Helper;
 import kz.video.watcher.Receivers.MyAdmin;
@@ -23,17 +24,23 @@ import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.OrientationEventListener;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.MediaController;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -48,8 +55,11 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -70,6 +80,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button buttonLogout;
     EditText etUrl;
     Button buttonConfirmUrl;
+    ProgressBar pb;
 
     boolean permissionsActivated = false; //проверка прав на админа
     SharedPreferences sPref; //для хранения данных в памяти телефона
@@ -90,10 +101,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private int playIntro;
     private String imei1 = "", imei2 = "";
     private String url;
+    private boolean isTouched = true;
+    OrientationEventListener mOrEventListener;
+    private final Handler handler = new Handler();
+    private Runnable runnable;
+    private MobileInfo mobileInfo;
+
+    private void setDefaults() {
+        deviceId = 0;
+        userId = 0;
+        runnable = new Runnable() {
+            @Override
+            public void run() {
+                isTouched = false;
+                //handler.removeCallbacks(this);
+                sendAction(10);
+            }
+        };
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setDefaults();
         initUI();
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_PHONE_STATE}, 1);
         sPref = getPreferences(MODE_PRIVATE);
@@ -102,6 +132,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         deviceId = sPref.getInt(DEVICE_ID, 0);
         playIntro = sPref.getInt(PLAYINTRO, -1);
         playVideo = sPref.getInt(PLAYVIDEO, -1);
+        Gson gson = new Gson();
+        String json = sPref.getString("mobile_info", "");
+        Log.e("ASD", "MA mobile info str = " + json);
+        mobileInfo = gson.fromJson(json, MobileInfo.class);
         url = sPref.getString("url", getString(R.string.default_url));
         Log.e("ASD", "url = " + url + " default url = " + getString(R.string.default_url));
         Helper.setUrl(url);
@@ -136,6 +170,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Log.e("ASD", "launch mainactivity");
     }
 
+    private  void startOrientationChangeListener() {
+            mOrEventListener = new OrientationEventListener(getApplicationContext()) {
+                @Override
+                public void onOrientationChanged(int rotation) {
+                    Log.e("ASD", "rotation = " + rotation);
+                    if (!isTouched) {
+                        Log.e("ASD", "PHONE WAS TOUCHED");
+                        //Toast.makeText(getApplicationContext(), "PHONE IS TOUCHED, SEND ACTION 9", Toast.LENGTH_SHORT).show();
+                        isTouched = true;
+                        sendAction(9);
+                    }
+                    restart(5);
+                }
+            };
+            mOrEventListener.enable();
+    }
+
     public String getDeviceId(Context context, int sim) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
@@ -156,6 +207,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         buttonPermissions = findViewById(R.id.button_permissions);
         buttonVideo = findViewById(R.id.button_video);
         llPermissions = findViewById(R.id.ll_permissions);
+        pb = findViewById(R.id.pb);
         tvSdk = findViewById(R.id.tv_sdk);
         tvDevice = findViewById(R.id.tv_device);
         tvImei = findViewById(R.id.tv_imei);
@@ -197,7 +249,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 startActivityForResult(intent, RESULT_ENABLE);
                 break;
             case R.id.button_video:
-                showVideo();
+                pb.setVisibility(View.VISIBLE);
+                buttonVideo.setEnabled(false);
+                getMobileInfo();
                 break;
             case R.id.button_login:
                 if (!etLogin.getText().equals("") && !etPassword.getText().equals("")) {
@@ -240,11 +294,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void showVideo() { //Запускает VideoActivity где играет видео
+        startOrientationChangeListener();
+        isTouched = false;
         Intent intent = new Intent(MainActivity.this, VideoActivity.class);
         intent.putExtra("device", deviceId);
         intent.putExtra("user", userId);
         intent.putExtra("play_video", playVideo);
         intent.putExtra("play_intro", playIntro);
+        intent.putExtra("mobile_info", mobileInfo);
+        intent.putExtra("device_name", Build.MODEL);
         startActivity(intent);
     }
 
@@ -273,7 +331,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onDestroy() {
         super.onDestroy();
         Log.e("ASD", "in method: destroy main");
-
+        handler.removeCallbacks(runnable);
+        handler.removeCallbacksAndMessages(null);
+        if (mOrEventListener != null)
+            mOrEventListener.disable();
+        stop();
         if (mReceiver != null) {
             unregisterReceiver(mReceiver);
             mReceiver = null;
@@ -444,6 +506,62 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }.execute("");
     }
+
+    void getMobileInfo() { //Запрос на получение device_id
+        Log.e("ASD", "GETMobileInfo");
+        new AsyncTask<String, String, String>() {
+
+            @Override
+            protected String doInBackground(String... params) {
+                try {
+                    Log.e("ASD", Helper.getMobileInfo());
+                    String paramString = "{\"user_id\":" + userId + ",\"device_id\":\"" + deviceId + "\"}";
+                    Log.e("ASD", paramString);
+                    //String paramString2 = "{\"user_id\":5,\"vendor_name\":\"Xiaomi2\",\"model_name\":\"Redmi Note 5\",\"ss_width\": 540,\"ss_height\": 340,\"android_ver\": \"6.0\",\"serial_num\": \"asdasdasd\",\"IMEI_1\": \"12321312313\",\"IMEI_2\": \"12321312314\"}";
+                    String response = makePostRequest(Helper.getMobileInfo(), paramString
+                            , getApplicationContext());
+
+                    //Log.e("ASD", paramString2);
+                    return response;
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                    return "";
+                }
+            }
+
+            @Override
+            protected void onPostExecute(String s) {
+                super.onPostExecute(s);
+                JSONObject object = null;
+                Log.e("ASD", "QWE s = " + s);
+                try {
+                    Gson gson = new Gson();
+                    object = new JSONObject(s);
+                    mobileInfo = gson.fromJson(object.toString(), MobileInfo.class);
+                    JSONArray tec = object.getJSONArray("tech_spеc");
+                    ArrayList<String> tecs = new ArrayList<>();
+                    Log.e("ASD", "tec size = " + tec.length());
+                    for (int i = 0; i < tec.length(); i++) {
+                        tecs.add(tec.getString(i));
+                    }
+                    mobileInfo.setTech_spec(tecs);
+                    sPref = getPreferences(MODE_PRIVATE);
+                    SharedPreferences.Editor ed = sPref.edit();
+                    String json = gson.toJson(mobileInfo);
+                    ed.putString("mobile_info", json);
+                    ed.commit();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                Log.e("ASD", "getmob name = " + mobileInfo.getPrice() + " tech spec size = " + mobileInfo.getTech_spec().size());
+                Log.e("ASD", "req mess = " + s);
+                buttonVideo.setEnabled(true);
+                pb.setVisibility(View.GONE);
+                showVideo();
+            }
+        }.execute("");
+    }
+
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -490,6 +608,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         uc.disconnect();
         return jsonString.toString();
+    }
+
+    public void start(int secs) {
+        handler.postDelayed(runnable, secs * 1000);
+    }
+
+    // to stop the handler
+    public void stop() {
+        handler.removeCallbacks(runnable);
+        handler.removeCallbacksAndMessages(null);
+    }
+
+    // to reset the handler
+    public void restart(int secs) {
+        handler.removeCallbacks(runnable);
+        handler.removeCallbacksAndMessages(null);
+        handler.postDelayed(runnable, secs * 1000);
     }
 
 }

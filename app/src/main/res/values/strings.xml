@@ -8,4 +8,5 @@
     <string name="log_out">Выйти</string>
     <string name="confirm">Принять</string>
     <string name="default_url">http://95.56.236.114:53000/</string>
+    <string name="refresh_info">Загрузить/Обновить информацию о телефоне</string>
 </resources>

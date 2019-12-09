@@ -1,8 +1,12 @@
  package kz.video.watcher.Activities;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import kz.video.MobileInfo;
 import kz.video.watcher.ActivityTask;
 import kz.video.watcher.Helper;
+import kz.video.watcher.MobileInfoAdapter;
 import kz.video.watcher.OnSwipeTouchListener;
 import kz.video.watcher.R;
 import kz.video.watcher.StateBroadcastingVideoView;
@@ -18,6 +22,7 @@ import android.graphics.PixelFormat;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.DisplayMetrics;
@@ -30,6 +35,7 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.MediaController;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
 
@@ -63,6 +69,9 @@ import static java.security.AccessController.getContext;
 
     FastVideoView videoView;
     LinearLayout llPhone;
+    RecyclerView rv;
+    TextView tvName;
+    TextView tvCost;
 
     MediaController ctlr;
     private HttpProxyCacheServer proxy;
@@ -80,6 +89,9 @@ import static java.security.AccessController.getContext;
      OrientationEventListener mOrEventListener;
      private int playVideo;
      private int playIntro;
+     private MobileInfo mobileInfo;
+     private static MobileInfoAdapter adapter;
+     private String deviceName = "";
 
      private final Handler handler = new Handler();
      private Runnable runnable;
@@ -94,9 +106,8 @@ import static java.security.AccessController.getContext;
              @Override
              public void run() {
                  isTouched = false;
-                 //handler.removeCallbacks(this);
-                 sendAction(10);
-                 llPhone.animate().translationY(1300);
+                 if (playIntro == 1)
+                    llPhone.animate().translationY(1300);
              }
          };
      }
@@ -117,7 +128,11 @@ import static java.security.AccessController.getContext;
         userId = intent.getIntExtra("user", 0);
         deviceId = intent.getIntExtra("device", 0);
         playIntro = intent.getIntExtra("play_intro", -1);
+        mobileInfo = (MobileInfo) intent.getSerializableExtra("mobile_info");
+        deviceName = intent.getStringExtra("device_name");
+        Log.e("ASD", "VV mobile info spec size = " + mobileInfo.getTech_spec().size());
         playVideo = intent.getIntExtra("play_video", -1);
+        Log.e("ASD", "play_inter = " + playIntro + " playvideo = " + playVideo);
         startOrientationChangeListener();
         horizontalUrl = sPref.getString(HORIZONTAL_URL, ""); //Получение horizontal_url и vertical_url из памяти телефона
         verticalUrl = sPref.getString(VERTICAL_URL,"");
@@ -133,6 +148,13 @@ import static java.security.AccessController.getContext;
         }
         Log.e("ASD", "videoActivity user = " + userId + " device = " + deviceId);
         llPhone.animate().translationY(1300);
+        adapter = new MobileInfoAdapter(this);
+        adapter.setList(mobileInfo);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        rv.setLayoutManager(layoutManager);
+        rv.setAdapter(adapter);
+        tvCost.setText(String.valueOf(mobileInfo.getPrice()) + " тг.");
+        tvName.setText(Build.MODEL);
     }
 
      public HttpProxyCacheServer getProxy(Context context) {
@@ -142,27 +164,31 @@ import static java.security.AccessController.getContext;
      private HttpProxyCacheServer newProxy() {
          return new HttpProxyCacheServer.Builder(this)
                  .maxCacheSize(1024 * 1024 * 1024)
+                 .maxCacheFilesCount(1000)
                  .build();
      }
      private  void startOrientationChangeListener() {
-         if (activity == 1) {
              mOrEventListener = new OrientationEventListener(getApplicationContext()) {
                  @Override
                  public void onOrientationChanged(int rotation) {
                      Log.e("ASD", "rotation = " + rotation);
                      if (!isTouched) {
                          Log.e("ASD", "PHONE WAS TOUCHED");
-                         //Toast.makeText(getApplicationContext(), "PHONE IS TOUCHED, SEND ACTION 9", Toast.LENGTH_SHORT).show();
                          isTouched = true;
-                         sendAction(9);
-                         llPhone.animate().translationY(0);
+                         if (playIntro == 1)
+                            llPhone.animate().translationY(0);
+                         if (playIntro == 0)
+                             moveTaskToBack(true);
                      }
                      restart(5);
 
                  }
              };
              mOrEventListener.enable();
-         }
+     }
+
+     private void fillMobileInfo() {
+
      }
 
     private void initUI() { //Объявление визуальных переменных
@@ -170,7 +196,10 @@ import static java.security.AccessController.getContext;
         ctlr = new MediaController(this);
         ctlr.setVisibility(View.GONE);
         llPhone = findViewById(R.id.ll_phone);
+        tvName = findViewById(R.id.tv_name);
+        tvCost = findViewById(R.id.tv_cost);
         llPhone.setRotation(90.0f);
+        rv = findViewById(R.id.rv_spec);
         videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
@@ -211,14 +240,14 @@ import static java.security.AccessController.getContext;
             public void onSwipeRight() {
             }
             public void onSwipeLeft() {
-//                Intent i = new Intent(VideoActivity.this, MainActivity.class);
-//                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-//                i.putExtra("open", 1);
-//                startActivity(i);
+                Intent i = new Intent(VideoActivity.this, MainActivity.class);
+                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                i.putExtra("open", 1);
+                startActivity(i);
                 //handler.removeCallbacks(runnable);
                 //handler.removeCallbacksAndMessages(null);
                 finish();
-                moveTaskToBack(true);
+                //moveTaskToBack(true);
                 return;
             }
             public void onSwipeBottom() {
@@ -265,23 +294,24 @@ import static java.security.AccessController.getContext;
      protected void onDestroy() {
          super.onDestroy();
          sendAction(8);
-         Log.e("ASDD", "stop handler");
-         //handler.removeCallbacks(runnable);
-         //handler.removeCallbacksAndMessages(null);
-         //mOrEventListener.disable();
-        // stop();
+         handler.removeCallbacks(runnable);
+         handler.removeCallbacksAndMessages(null);
+         mOrEventListener.disable();
+         stop();
      }
 
      private void showVideo() { //Показывает видео. Если новая ссылка, то отображает и кэширует другое видео.
-        sendAction(6);
-        getVideoInfo();
-        ctlr.setMediaPlayer(videoView);
-        videoView.setMediaController(ctlr);
-        videoView.requestFocus();
-        Log.e("ASD", "horizontal url = " + horizontalUrl);
-        String videoPath = proxy.getProxyUrl(horizontalUrl);
-        videoView.setVideoURI(Uri.parse(videoPath));
-        videoView.start();
+         if (playVideo == 1) {
+             sendAction(6);
+             getVideoInfo();
+             ctlr.setMediaPlayer(videoView);
+             videoView.setMediaController(ctlr);
+             videoView.requestFocus();
+             Log.e("ASD", "horizontal url = " + horizontalUrl);
+             String videoPath = proxy.getProxyUrl(horizontalUrl);
+             videoView.setVideoURI(Uri.parse(videoPath));
+             videoView.start();
+         }
     }
 
      void getVideoInfo() { //Запрос на get_device_video. Если запускается не первый раз, то проверяет ссылку на обновление

@@ -22,4 +22,8 @@ public class Helper {
     public static void setUrl(String s) {
         url = s;
     }
+
+    public static String getMobileInfo() {
+        return url + "rpc/get_device_inter";
+    }
 }
