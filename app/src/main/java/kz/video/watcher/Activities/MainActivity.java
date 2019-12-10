@@ -3,7 +3,7 @@ package kz.video.watcher.Activities;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import kz.video.MobileInfo;
+import kz.video.watcher.MobileInfo;
 import kz.video.watcher.Device;
 import kz.video.watcher.Helper;
 import kz.video.watcher.Receivers.MyAdmin;
@@ -19,13 +19,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -34,32 +32,23 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.MediaController;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -156,7 +145,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Log.e("ASD", "permission granted, load video");
             //buttonPermissions.setVisibility(View.GONE);
             buttonVideo.setVisibility(View.VISIBLE);
-            showVideo();
+            pb.setVisibility(View.VISIBLE);
+            buttonVideo.setEnabled(false);
+            refreshDeviceId();
         }
         IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_ON);
         filter.addAction(Intent.ACTION_SCREEN_OFF);
@@ -251,7 +242,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.button_video:
                 pb.setVisibility(View.VISIBLE);
                 buttonVideo.setEnabled(false);
-                getMobileInfo();
+                refreshDeviceId();
                 break;
             case R.id.button_login:
                 if (!etLogin.getText().equals("") && !etPassword.getText().equals("")) {
@@ -498,6 +489,56 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     ed.commit();
                     Log.e("ASD", "device id = " + deviceId);
                     sendAction(1);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                Log.e("ASD", "req mess = " + s);
+
+            }
+        }.execute("");
+    }
+
+    void refreshDeviceId() { //Запрос на получение device_id
+        new AsyncTask<String, String, String>() {
+
+            @Override
+            protected String doInBackground(String... params) {
+                try {
+                    Log.e("ASD", Helper.getUrlDeviceId());
+                    DisplayMetrics displayMetrics = new DisplayMetrics();
+                    getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+                    int height = displayMetrics.heightPixels;
+                    int width = displayMetrics.widthPixels;
+                    String paramString = "{\"user_id\":" + userId + ",\"vendor_name\":\"" + Build.MANUFACTURER + "\",\"model_name\":\"" + Build.MODEL + "\",\"ss_width\":" + width + ",\"ss_height\":" + height + ",\"android_ver\": \"" + Build.VERSION.SDK + "\",\"serial_num\": \"" + Device.getSerialNumber() + "\",\"IMEI_1\": \"" + getDeviceId(getApplicationContext(), 0) + "\",\"IMEI_2\": \"" + getDeviceId(getApplicationContext(), 1) + "\"}";
+                    Log.e("ASD", paramString);
+                    //String paramString2 = "{\"user_id\":5,\"vendor_name\":\"Xiaomi2\",\"model_name\":\"Redmi Note 5\",\"ss_width\": 540,\"ss_height\": 340,\"android_ver\": \"6.0\",\"serial_num\": \"asdasdasd\",\"IMEI_1\": \"12321312313\",\"IMEI_2\": \"12321312314\"}";
+                    String response = makePostRequest(Helper.getUrlDeviceId(), paramString
+                            , getApplicationContext());
+
+                    //Log.e("ASD", paramString2);
+                    return response;
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                    return "";
+                }
+            }
+
+            @Override
+            protected void onPostExecute(String s) {
+                super.onPostExecute(s);
+                try {
+                    Log.e("ASD", "QWE");
+                    JSONObject object = new JSONObject(s);
+                    deviceId = object.getInt("device_id");
+                    playIntro = object.getInt("play_inter");
+                    playVideo = object.getInt("play_video");
+                    sPref = getPreferences(MODE_PRIVATE);
+                    SharedPreferences.Editor ed = sPref.edit();
+                    ed.putInt(DEVICE_ID, deviceId);
+                    ed.putInt(PLAYINTRO, playIntro);
+                    ed.putInt(PLAYVIDEO, playVideo);
+                    ed.commit();
+                    getMobileInfo();
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }

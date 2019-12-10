@@ -1,4 +1,4 @@
-package kz.video;
+package kz.video.watcher;
 
 import java.io.Serializable;
 import java.util.ArrayList;

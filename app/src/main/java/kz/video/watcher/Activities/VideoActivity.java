@@ -3,67 +3,47 @@
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import kz.video.MobileInfo;
+import kz.video.watcher.MobileInfo;
 import kz.video.watcher.ActivityTask;
+import kz.video.watcher.Device;
 import kz.video.watcher.Helper;
 import kz.video.watcher.MobileInfoAdapter;
 import kz.video.watcher.OnSwipeTouchListener;
 import kz.video.watcher.R;
-import kz.video.watcher.StateBroadcastingVideoView;
 
-import android.app.Activity;
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.ActivityInfo;
-import android.content.res.Configuration;
-import android.graphics.Color;
-import android.graphics.PixelFormat;
+import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.telephony.TelephonyManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.Display;
-import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.MediaController;
 import android.widget.TextView;
-import android.widget.Toast;
-import android.widget.VideoView;
 
 import com.danikula.videocache.HttpProxyCacheServer;
 import com.warnyul.android.widget.FastVideoView;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.logging.Logger;
-
-import static java.security.AccessController.getContext;
 
  public class VideoActivity extends AppCompatActivity {
 
@@ -82,6 +62,9 @@ import static java.security.AccessController.getContext;
     String horizontalUrl = "";
     public static final String HORIZONTAL_URL = "horizontal_url";
     public static final String VERTICAL_URL = "vertical_url";
+     final String DEVICE_ID = "DEVICE_ID";
+     final String PLAYVIDEO = "PLAYVIDEO";
+     final String PLAYINTRO = "PLAYINTRO";
      SharedPreferences sPref;
      private int mOrientation=0;
      private boolean isTouched = true;
@@ -107,7 +90,8 @@ import static java.security.AccessController.getContext;
              public void run() {
                  isTouched = false;
                  if (playIntro == 1)
-                    llPhone.animate().translationY(1300);
+                    llPhone.animate().translationYBy(2000);
+                 Log.e("ASD", "PHONE WAS untouched");
              }
          };
      }
@@ -128,9 +112,12 @@ import static java.security.AccessController.getContext;
         userId = intent.getIntExtra("user", 0);
         deviceId = intent.getIntExtra("device", 0);
         playIntro = intent.getIntExtra("play_intro", -1);
+        //playIntro = 1;
         mobileInfo = (MobileInfo) intent.getSerializableExtra("mobile_info");
+        if (mobileInfo == null) {
+            mobileInfo = new MobileInfo(0,0,null,null);
+        }
         deviceName = intent.getStringExtra("device_name");
-        Log.e("ASD", "VV mobile info spec size = " + mobileInfo.getTech_spec().size());
         playVideo = intent.getIntExtra("play_video", -1);
         Log.e("ASD", "play_inter = " + playIntro + " playvideo = " + playVideo);
         startOrientationChangeListener();
@@ -147,7 +134,7 @@ import static java.security.AccessController.getContext;
             showVideo();
         }
         Log.e("ASD", "videoActivity user = " + userId + " device = " + deviceId);
-        llPhone.animate().translationY(1300);
+        llPhone.animate().translationYBy(2000);
         adapter = new MobileInfoAdapter(this);
         adapter.setList(mobileInfo);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
@@ -176,7 +163,7 @@ import static java.security.AccessController.getContext;
                          Log.e("ASD", "PHONE WAS TOUCHED");
                          isTouched = true;
                          if (playIntro == 1)
-                            llPhone.animate().translationY(0);
+                            llPhone.animate().translationYBy(-2000);
                          if (playIntro == 0)
                              moveTaskToBack(true);
                      }
@@ -198,7 +185,6 @@ import static java.security.AccessController.getContext;
         llPhone = findViewById(R.id.ll_phone);
         tvName = findViewById(R.id.tv_name);
         tvCost = findViewById(R.id.tv_cost);
-        llPhone.setRotation(90.0f);
         rv = findViewById(R.id.rv_spec);
         videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
@@ -214,10 +200,15 @@ import static java.security.AccessController.getContext;
         Log.e("ASD", "" + height + " " + width);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(height,width);
         videoView.setLayoutParams(lp);
+        FrameLayout.LayoutParams lpp = new FrameLayout.LayoutParams(height, width);
+        llPhone.setLayoutParams(lpp);
+        llPhone.setRotation(90.0f);
         float x = width / 2 - (height / 2);
         float y = height / 2 - (width / 2);
         videoView.setY(y);
         videoView.setX(x);
+        llPhone.setY(y);
+        llPhone.setX(x);
 
         Log.e("ASD", "" + x + " " + y);
 //        videoView.setOnTouchListener(new View.OnTouchListener() {
@@ -304,6 +295,7 @@ import static java.security.AccessController.getContext;
          if (playVideo == 1) {
              sendAction(6);
              getVideoInfo();
+             refreshDeviceId();
              ctlr.setMediaPlayer(videoView);
              videoView.setMediaController(ctlr);
              videoView.requestFocus();
@@ -313,6 +305,69 @@ import static java.security.AccessController.getContext;
              videoView.start();
          }
     }
+
+     void refreshDeviceId() { //Запрос на получение device_id
+         new AsyncTask<String, String, String>() {
+
+             @Override
+             protected String doInBackground(String... params) {
+                 try {
+                     Log.e("ASD", Helper.getUrlDeviceId());
+                     DisplayMetrics displayMetrics = new DisplayMetrics();
+                     getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+                     int height = displayMetrics.heightPixels;
+                     int width = displayMetrics.widthPixels;
+                     String paramString = "{\"user_id\":" + userId + ",\"vendor_name\":\"" + Build.MANUFACTURER + "\",\"model_name\":\"" + Build.MODEL + "\",\"ss_width\":" + width + ",\"ss_height\":" + height + ",\"android_ver\": \"" + Build.VERSION.SDK + "\",\"serial_num\": \"" + Device.getSerialNumber() + "\",\"IMEI_1\": \"" + getDeviceId(getApplicationContext(), 0) + "\",\"IMEI_2\": \"" + getDeviceId(getApplicationContext(), 1) + "\"}";
+                     Log.e("ASD", paramString);
+                     //String paramString2 = "{\"user_id\":5,\"vendor_name\":\"Xiaomi2\",\"model_name\":\"Redmi Note 5\",\"ss_width\": 540,\"ss_height\": 340,\"android_ver\": \"6.0\",\"serial_num\": \"asdasdasd\",\"IMEI_1\": \"12321312313\",\"IMEI_2\": \"12321312314\"}";
+                     String response = makePostRequest(Helper.getUrlDeviceId(), paramString
+                             , getApplicationContext());
+
+                     //Log.e("ASD", paramString2);
+                     return response;
+                 } catch (IOException ex) {
+                     ex.printStackTrace();
+                     return "";
+                 }
+             }
+
+             @Override
+             protected void onPostExecute(String s) {
+                 super.onPostExecute(s);
+                 try {
+                     Log.e("ASD", "QWE");
+                     JSONObject object = new JSONObject(s);
+                     deviceId = object.getInt("device_id");
+                     playIntro = object.getInt("play_inter");
+                     playVideo = object.getInt("play_video");
+                     sPref = getPreferences(MODE_PRIVATE);
+                     SharedPreferences.Editor ed = sPref.edit();
+                     ed.putInt(DEVICE_ID, deviceId);
+                     ed.putInt(PLAYINTRO, playIntro);
+                     ed.putInt(PLAYVIDEO, playVideo);
+                     ed.commit();
+                 } catch (JSONException e) {
+                     e.printStackTrace();
+                 }
+                 Log.e("ASD", "req mess = " + s);
+
+             }
+         }.execute("");
+     }
+
+     public String getDeviceId(Context context, int sim) {
+         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+             if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+                 return null;
+             }
+         }
+         TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+         String imei = "";
+         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+             imei = telephonyManager.getDeviceId(sim);
+         }
+         return imei;
+     }
 
      void getVideoInfo() { //Запрос на get_device_video. Если запускается не первый раз, то проверяет ссылку на обновление
          new AsyncTask<String, String, String>() {

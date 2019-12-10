@@ -1,32 +1,15 @@
 package kz.video.watcher;
 
-import android.app.FragmentTransaction;
 import android.content.Context;
-import android.content.Intent;
-import android.graphics.Paint;
-import android.graphics.Typeface;
 
 import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.FrameLayout;
-import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Locale;
-
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import kz.video.MobileInfo;
 
 /**
  * Created by tolya on 26.12.2017.
